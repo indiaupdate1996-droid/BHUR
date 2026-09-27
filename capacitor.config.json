@@ -1,0 +1,6 @@
+{
+  "appId": "com.indiaupdate.bhur",
+  "appName": "BHUR",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
