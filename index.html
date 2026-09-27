@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#11100f">
+<title>BHUR • TELANGA Demo</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#120d09;color:#fff;font-family:Arial,sans-serif;display:flex;justify-content:center;min-height:100vh}
+.app{width:min(100%,560px);min-height:100vh;padding:12px;background:linear-gradient(180deg,#21130b,#0e1118)}
+.header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.logo{font-size:34px;font-weight:900;letter-spacing:1px;text-shadow:0 3px 5px #000}
+.small{font-size:12px;opacity:.7}
+button{border:0;color:#fff;background:#1e293b;border-radius:15px;padding:12px 15px;font-weight:800;font-size:14px;box-shadow:0 4px 10px #0005}
+.sound{background:#203148}
+.players{display:flex;gap:10px;margin:12px 0}
+.player{flex:1;border-radius:17px;padding:10px 12px;border:2px solid #334155;background:#172235}
+.player.r{border-color:#a11d29}.player.g{border-color:#15934e}
+.player b{font-size:18px}.count{font-size:12px;margin-top:5px}
+.boardCard{background:linear-gradient(145deg,#c48a4d,#6d3e1e);padding:10px;border-radius:25px;box-shadow:0 18px 35px #0009}
+.boardInner{background:linear-gradient(145deg,#f2dca8,#cfae6b);padding:12px;border-radius:20px}
+canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;border-radius:12px}
+.status{margin-top:11px;padding:13px;border-radius:15px;background:#172235;text-align:center;font-weight:800;line-height:1.35}
+.controls{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px;margin-top:10px}
+.mode{grid-column:1/-1;background:#111827;padding:8px;border-radius:16px}
+.modeTitle{text-align:center;font-size:12px;opacity:.7;margin-bottom:7px}
+.modeBtns{display:flex;gap:8px}.modeBtns button{flex:1}.active{background:#c8f20b!important;color:#10150a}
+.help{text-align:center;font-size:12px;opacity:.75;margin:10px 4px 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div><div class="logo" id="title">BHUR</div><div class="small" id="subtitle">9 Goti • 2 Player • Demo</div></div>
+    <button class="sound" id="sound">🔊 Sound ON</button>
+  </div>
+
+  <div class="players">
+    <div class="player r">🔴 <b>लाल</b><div class="count">बाकी: <span id="rleft">9</span></div></div>
+    <div class="player g">🟢 <b>हरा</b><div class="count">बाकी: <span id="gleft">9</span></div></div>
+  </div>
+
+  <div class="boardCard"><div class="boardInner"><canvas id="board" width="700" height="700"></canvas></div></div>
+  <div class="status" id="status">पहले TOSS करें — पहली चाल तय होगी</div>
+
+  <div class="controls">
+    <button id="new">↻ नया खेल</button>
+    <button id="toss">🪙 TOSS<br><span style="font-size:11px">पहली चाल</span></button>
+    <button id="rules">ℹ नियम</button>
+    <div class="mode">
+      <div class="modeTitle">GAME MODE</div>
+      <div class="modeBtns">
+        <button id="bhur" class="active">BHUR</button>
+        <button id="telanga">TELANGA</button>
+      </div>
+    </div>
+  </div>
+  <div class="help" id="help">पहले गोटियाँ खाली joints पर रखें। फिर SWIPE/DRAG करके जुड़े हुए joint पर चलाएँ।</div>
+</div>
+
+<script>
+const canvas=document.getElementById('board'),ctx=canvas.getContext('2d'),W=700;
+const P=[
+[50,50],[350,50],[650,50],[650,350],[650,650],[350,650],[50,650],[50,350],
+[130,130],[350,130],[570,130],[570,350],[570,570],[350,570],[130,570],[130,350],
+[225,225],[350,225],[475,225],[475,350],[475,475],[350,475],[225,475],[225,350]
+];
+const E=[]; const link=(a,b)=>E.push([a,b]);
+for(let i=0;i<8;i++)link(i,(i+1)%8);
+for(let i=8;i<16;i++)link(i,8+(i-8+1)%8);
+for(let i=16;i<24;i++)link(i,16+(i-16+1)%8);
+[[0,8],[2,10],[4,12],[6,14],[1,9],[3,11],[5,13],[7,15],
+[8,16],[10,18],[12,20],[14,22],[9,17],[11,19],[13,21],[15,23]].forEach(x=>link(...x));
+const H=[
+[0,1,2],[2,3,4],[4,5,6],[6,7,0],
+[8,9,10],[10,11,12],[12,13,14],[14,15,8],
+[16,17,18],[18,19,20],[20,21,22],[22,23,16],
+[1,9,17],[3,11,19],[5,13,21],[7,15,23]
+];
+// TELANGA केवल चार कोने वाली तिरछी 3-जॉइंट लाइनों पर बनेगा।
+// बाकी सभी 3-जॉइंट लाइनें BHUR मानी जाएँगी।
+const D=[
+[0,8,16],[2,10,18],[4,12,20],[6,14,22]
+];
+let mode='BHUR',need=9,board=Array(24).fill(null),turn=null,placed={R:0,G:0},drag=-1,dragPos=null,capture=0,refill=null,captureMaker=null,captureTarget=null,sound=true,started=false;
+
+function neigh(i){let a=[];for(const e of E)if(e[0]===i)a.push(e[1]);else if(e[1]===i)a.push(e[0]);return a}
+function near(x,y){let b=-1,d=34;P.forEach((p,i)=>{let z=Math.hypot(x-p[0],y-p[1]);if(z<d){d=z;b=i}});return b}
+function inForm(i,p=board[i]){if(!p)return false;return [...H,...D].some(m=>m.includes(i)&&m.every(x=>board[x]===p))}
+function formsMade(i,p){return [...H,...D].filter(m=>m.includes(i)&&m.every(x=>board[x]===p))}
+function tone(kind){if(!sound)return;try{let A=new AudioContext(),o=A.createOscillator(),g=A.createGain();o.type='sine';o.frequency.value=kind==='win'?700:kind==='form'?540:kind==='bad'?170:kind==='cap'?300:390;g.gain.value=.05;o.connect(g);g.connect(A.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,A.currentTime+.16);o.stop(A.currentTime+.17)}catch(e){}}
+function draw(){
+ ctx.clearRect(0,0,W,W);
+ ctx.fillStyle='#ead29b';ctx.fillRect(0,0,W,W);
+ ctx.strokeStyle='#161616';ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';
+
+ // तीनों पूरे square — कोई भी नीचे की line नहीं हटाई गई
+ const squares=[
+   [0,1,2,3,4,5,6,7],
+   [8,9,10,11,12,13,14,15],
+   [16,17,18,19,20,21,22,23]
+ ];
+ squares.forEach(a=>{
+   ctx.beginPath();ctx.moveTo(...P[a[0]]);
+   for(let k=1;k<a.length;k++)ctx.lineTo(...P[a[k]]);
+   ctx.closePath();ctx.stroke();
+ });
+
+ // बाहरी से बीच और बीच से अंदर की सभी connecting lines
+ const spokes=[
+   [0,8],[8,16],
+   [1,9],[9,17],
+   [2,10],[10,18],
+   [3,11],[11,19],
+   [4,12],[12,20],
+   [5,13],[13,21],
+   [6,14],[14,22],
+   [7,15],[15,23]
+ ];
+ spokes.forEach(e=>{
+   // BHUR में 4 तिरछी/diagonal lines नहीं दिखेंगी।
+   // TELANGA में वही 4 diagonal lines दिखेंगी।
+   const a=P[e[0]], b=P[e[1]];
+   const diagonal = (a[0]!==b[0] && a[1]!==b[1]);
+   if(mode==='BHUR' && diagonal) return;
+   ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();
+ });
+
+ // joints
+ for(let i=0;i<24;i++){
+   let [x,y]=P[i];
+   ctx.beginPath();ctx.arc(x,y,16,0,Math.PI*2);
+   ctx.fillStyle='#f6e9c8';ctx.fill();
+   ctx.lineWidth=4;ctx.strokeStyle='#171717';ctx.stroke();
+ }
+
+ // gotiyan
+ for(let i=0;i<24;i++)if(board[i]){
+   let [x,y]=P[i],col=board[i]==='R'?'#ef2638':'#20c978';
+   ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);
+   ctx.fillStyle=col;ctx.fill();
+   ctx.lineWidth=4;ctx.strokeStyle='#111';ctx.stroke();
+   ctx.beginPath();ctx.arc(x-7,y-8,7,0,Math.PI*2);
+   ctx.fillStyle='#ffffff55';ctx.fill();
+ }
+
+ if(capture>0 && turn){
+   const opp=turn==='R'?'G':'R';
+   for(let i=0;i<24;i++){
+     if(board[i]!==opp) continue;
+     let [x,y]=P[i];
+     ctx.beginPath();ctx.arc(x,y,32,0,Math.PI*2);
+     ctx.lineWidth=4;ctx.strokeStyle='#ffd400';ctx.stroke();
+   }
+ }
+ if(drag>=0&&dragPos){
+   let col=board[drag]==='R'?'#ef2638':'#20c978';
+   ctx.beginPath();ctx.arc(dragPos.x,dragPos.y,25,0,Math.PI*2);
+   ctx.fillStyle=col;ctx.fill();
+   ctx.lineWidth=4;ctx.strokeStyle='#111';ctx.stroke();
+ }
+}
+function set(s){document.getElementById('status').textContent=s}
+function update(){document.getElementById('rleft').textContent=Math.max(0,need-placed.R);document.getElementById('gleft').textContent=Math.max(0,need-placed.G)}
+function reset(){board.fill(null);placed={R:0,G:0};turn=null;capture=0;refill=null;captureMaker=null;captureTarget=null;started=false;set('पहले TOSS करें — पहली चाल तय होगी');update();draw()}
+function setMode(m){mode=m;need=m==='BHUR'?9:12;document.getElementById('title').textContent=m;document.getElementById('subtitle').textContent=need+' Goti • 2 Player • Demo';document.getElementById('bhur').classList.toggle('active',m==='BHUR');document.getElementById('telanga').classList.toggle('active',m==='TELANGA');reset()}
+function toss(){if(started){set('गेम चल रहा है — नया खेल करके फिर TOSS करें');return}turn=Math.random()<.5?'R':'G';started=true;set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की पहली चाल — TOSS में '+(turn==='R'?'लाल':'हरा')+' जीता');tone('form')}
+function finishPlacement(){if(placed.R===need&&placed.G===need)set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की बारी — अब गोटी SWIPE/DRAG करके चलाएँ')}
+function captureAllowed(i,p){let opp=p==='R'?'G':'R',free=[];for(let x=0;x<24;x++)if(board[x]===opp&&!inForm(x,opp))free.push(x);return {opp,free}}
+function captureAt(i){
+ // जिस खिलाड़ी ने BHUR/TELANGA बनाया है, उसका विरोधी ही capture target रहेगा।
+ const target=captureTarget || (captureMaker==='R'?'G':'R');
+ if(board[i]!==target)return;
+ const free=Array.from({length:24},(_,x)=>x).filter(x=>board[x]===target&&!inForm(x,target));
+ const protectedPiece=inForm(i,target);
+ if(free.length && protectedPiece){set('⚠️ पहले Free गोटी चुनें');tone('bad');return}
+
+ board[i]=null;capture--;tone('cap');
+
+ // TELANGA में पहले बोर्ड पर मौजूद सभी विरोधी गोटियाँ हटेंगी।
+ // अगर 3 हटानी हैं लेकिन बोर्ड पर केवल 2 हैं, तो दोनों हटने के बाद
+ // विरोधी को reserve से 1 गोटी रखने का मौका मिलेगा और फिर वही तीसरी गोटी हटेगी।
+ if(mode==='TELANGA' && captureMaker && capture>0){
+   const remainingOpp=board.filter(x=>x===target).length;
+   if(remainingOpp===0 && placed[target] < need){
+     refill=target;
+     turn=target;
+     set((target==='R'?'🔴 लाल':'🟢 हरा')+
+         ' की 1 गोटी वापस रखने की बारी — फिर TELANGA की आखिरी गोटी हटाएँ');
+     draw();return;
+   }
+ }
+
+ if(capture>0){
+   turn=captureMaker; // capture phase में turn हमेशा BHUR/TELANGA बनाने वाले खिलाड़ी का रहेगा
+   set('🗑️ अब विरोधी की '+capture+' गोटी पर TAP करें');
+   draw();return;
+ }
+
+ turn=captureMaker==='R'?'G':'R';
+ captureMaker=null;
+ captureTarget=null;
+ set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की बारी');
+ draw();checkWin()
+}
+
+function checkWin(){for(const p of ['R','G']){let left=board.filter(x=>x===p).length,other=p==='R'?'G':'R';if(placed[p]===need&&left<3){set('🏆 '+(p==='R'?'लाल':'हरा')+' जीत गया!');tone('win');started=false}}}
+function move(from,to){
+ if(board[to]||!neigh(from).includes(to)){tone('bad');set('❌ गलत चाल — केवल जुड़े हुए खाली joint पर जाएँ');return}
+ let p=board[from];board[from]=null;board[to]=p;tone('move');
+ let madeH=formsMade(to,p).some(m=>H.includes(m)),madeD=formsMade(to,p).some(m=>D.includes(m));
+ let made=mode==='BHUR'?madeH:madeD;
+ if(made){capture=mode==='BHUR'?1:3;captureMaker=p;captureTarget=p==='R'?'G':'R';tone('form');set((mode==='BHUR'?'🟠 BHUR':'🔷 TELANGA')+' बनी! अब '+capture+' विरोधी गोटी चुनें');}
+ else{turn=turn==='R'?'G':'R';set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की बारी')}
+ draw();checkWin()
+}
+canvas.addEventListener('pointerdown',e=>{
+ let r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*W/r.height,i=near(x,y);
+ if(!started||!turn)return;
+
+ // IMPORTANT: जब TELANGA की 2 मौजूद गोटियाँ हट चुकी हों,
+ // पहले विरोधी को खाली joint पर तीसरी गोटी रखने दें।
+ // यह check capture phase से पहले होना जरूरी है, वरना tap को
+ // फिर से 'गोटी हटाएँ' माना जाता है और refill नहीं हो पाता।
+ if(refill){
+   if(i>=0 && board[i]===null && turn===refill){
+     const p=turn;
+     board[i]=p; placed[p]++; tone('move'); update();
+     refill=null;
+     capture=1;
+     captureTarget=p;
+     turn=captureMaker;
+     set('🗑️ '+(p==='R'?'लाल':'हरा')+' की रखी हुई गोटी अब TELANGA की तीसरी गोटी है — TAP करके हटाएँ');
+     draw();
+   }
+   return;
+ }
+
+ if(capture>0){if(i>=0)captureAt(i);return}
+ if((placed.R<need||placed.G<need)){
+   if(i>=0&&board[i]===null){
+     const p=turn;
+
+     board[i]=p; placed[p]++; tone('move'); update();
+
+     // BHUR mode: सीधी 3 गोटियाँ = 1 गोटी हटेगी।
+     // TELANGA mode: सीधी 3 गोटियाँ (BHUR) = 1 गोटी हटेगी,
+     // जबकि तिरछी 3 गोटियाँ (TELANGA) = 3 गोटियाँ हटेंगी।
+     const madeH=formsMade(i,p).some(m=>H.includes(m));
+     const madeD=formsMade(i,p).some(m=>D.includes(m));
+
+     let made=false, removeCount=0, formName='';
+     if(mode==='BHUR' && madeH){
+       made=true; removeCount=1; formName='BHUR';
+     } else if(mode==='TELANGA' && madeD){
+       made=true; removeCount=3; formName='TELANGA';
+     } else if(mode==='TELANGA' && madeH){
+       made=true; removeCount=1; formName='BHUR';
+     }
+
+     if(made){
+       capture=removeCount;
+       captureMaker=p;
+       captureTarget=p==='R'?'G':'R';
+       tone('form');
+       set((formName==='BHUR'?'🟠 BHUR बनी!':'🔷 TELANGA बनी!')+
+           ' अब विरोधी की '+capture+' गोटी पर TAP करें');
+       draw();
+       return;
+     }
+
+     if(placed.R===need&&placed.G===need) finishPlacement();
+     else{
+       turn=turn==='R'?'G':'R';
+       set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की बारी — खाली joint पर गोटी रखें');
+     }
+     draw();
+   }
+   return;
+ }
+ if(board[i]===turn){drag=i;dragPos={x,y};canvas.setPointerCapture?.(e.pointerId);draw()}
+});
+canvas.addEventListener('pointermove',e=>{if(drag<0)return;let r=canvas.getBoundingClientRect();dragPos={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*W/r.height};draw()});
+canvas.addEventListener('pointerup',e=>{if(drag<0)return;let r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*W/r.height,to=near(x,y),from=drag;drag=-1;dragPos=null;if(to>=0)move(from,to);else draw()});
+document.getElementById('new').onclick=reset;
+document.getElementById('toss').onclick=toss;
+document.getElementById('bhur').onclick=()=>setMode('BHUR');
+document.getElementById('telanga').onclick=()=>setMode('TELANGA');
+document.getElementById('sound').onclick=()=>{sound=!sound;document.getElementById('sound').textContent=sound?'🔊 Sound ON':'🔇 Sound OFF'};
+document.getElementById('rules').onclick=()=>alert('DEMO नियम:\\n\\nBHUR: 9-9 गोटियाँ। 3 सीधी लाइन पर BHUR, 1 विरोधी गोटी हटेगी।\\n\\nTELANGA: 12-12 गोटियाँ। केवल 4 कोने वाली तिरछी लाइन में 3 गोटियाँ होने पर TELANGA, 3 विरोधी गोटियाँ हटेंगी। बाकी हर 3-गोटी लाइन BHUR मानी जाएगी और 1 विरोधी गोटी हटेगी।\\n\\nपहले Free गोटियाँ हटेंगी। Free कम पड़ने पर बाकी हटाने के लिए BHUR/TELANGA वाली गोटी चुनी जा सकती है।\\n\\nपहले TOSS से पहली चाल तय होगी।');
+reset();
+</script>
+</body>
+</html>
