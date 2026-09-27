@@ -33,10 +33,6 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
         
-      - name: Configure AdMob
-        run: |
-          python3 - <<'PY'
-                    PY
 
       - name: Add BHUR App Icon
         run: |
