@@ -291,5 +291,14 @@ document.getElementById('sound').onclick=()=>{sound=!sound;document.getElementBy
 document.getElementById('rules').onclick=()=>alert('DEMO नियम:\\n\\nBHUR: 9-9 गोटियाँ। 3 सीधी लाइन पर BHUR, 1 विरोधी गोटी हटेगी।\\n\\nTELANGA: 12-12 गोटियाँ। केवल 4 कोने वाली तिरछी लाइन में 3 गोटियाँ होने पर TELANGA, 3 विरोधी गोटियाँ हटेंगी। बाकी हर 3-गोटी लाइन BHUR मानी जाएगी और 1 विरोधी गोटी हटेगी।\\n\\nपहले Free गोटियाँ हटेंगी। Free कम पड़ने पर बाकी हटाने के लिए BHUR/TELANGA वाली गोटी चुनी जा सकती है।\\n\\nपहले TOSS से पहली चाल तय होगी।');
 reset();
 </script>
+
+<script src="admob.bundle.js"></script>
+
+<script>
+  if (window.BhurAdMob) {
+    window.BhurAdMob.initAdMob();
+  }
+</script>
+
 </body>
 </html>
