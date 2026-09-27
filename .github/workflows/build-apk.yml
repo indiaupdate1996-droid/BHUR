@@ -62,29 +62,10 @@ jobs:
           manifest.write_text(text)
           PY
 
-      - name: Build Debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug
-          from pathlib import Path
-
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          text = manifest.read_text()
-
-          meta = '''        <meta-data
-              android:name="com.google.android.gms.ads.APPLICATION_ID"
-              android:value="@string/admob_app_id" />'''
-
-          text = text.replace("</application>", meta + "\n    </application>")
-          manifest.write_text(text)
-
-          strings = Path("android/app/src/main/res/values/strings.xml")
-          text = strings.read_text()
-
-          admob = '    <string name="admob_app_id">ca-app-pub-9955317200878271~3605410882</string>'
-
-          text = text.replace("</resources>", admob + "\n</resources>")
-          strings.write_text(text)
-          PY
+      - name: Configure AdMob
+        run: |
+          sed -i 's#</application>#        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\n    </application>#' android/app/src/main/AndroidManifest.xml
+          sed -i 's#</resources>#    <string name="admob_app_id">ca-app-pub-9955317200878271~3605410882</string>\n</resources>#' android/app/src/main/res/values/strings.xml
       
 
       - name: Build Debug APK
