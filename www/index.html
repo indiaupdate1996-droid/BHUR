@@ -27,12 +27,23 @@ canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;border-radius:1
 .modeTitle{text-align:center;font-size:12px;opacity:.7;margin-bottom:7px}
 .modeBtns{display:flex;gap:8px}.modeBtns button{flex:1}.active{background:#c8f20b!important;color:#10150a}
 .help{text-align:center;font-size:12px;opacity:.75;margin:10px 4px 0}
+  .extraTop{
+  background:#1f304b;
+  color:white;
+  border:2px solid #405474;
+  border-radius:20px;
+  padding:12px 16px;
+  font-size:16px;
+  font-weight:700;
+  white-space:nowrap;
+}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
-    <div><div class="logo" id="title">BHUR</div><div class="small" id="subtitle">9 Goti • 2 Player • Demo</div></div>
+    <div><div class="logo" id="title">BHUR</div><div class="small" id="subtitle">9 Goti • 2 Player</div></div>
+    <button id="extraMove">🎁 Extra Move</button>
     <button class="sound" id="sound">🔊 Sound ON</button>
   </div>
 
@@ -48,7 +59,6 @@ canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;border-radius:1
     <button id="new">↻ नया खेल</button>
     <button id="toss">🪙 TOSS<br><span style="font-size:11px">पहली चाल</span></button>
     <button id="rules">ℹ नियम</button>
-<button id="extraMove">🎁 Extra Move</button>
 <div class="mode">
       <div class="modeTitle">GAME MODE</div>
       <div class="modeBtns">
