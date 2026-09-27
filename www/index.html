@@ -48,7 +48,8 @@ canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;border-radius:1
     <button id="new">↻ नया खेल</button>
     <button id="toss">🪙 TOSS<br><span style="font-size:11px">पहली चाल</span></button>
     <button id="rules">ℹ नियम</button>
-    <div class="mode">
+<button id="extraMove">🎁 Extra Move</button>
+<div class="mode">
       <div class="modeTitle">GAME MODE</div>
       <div class="modeBtns">
         <button id="bhur" class="active">BHUR</button>
@@ -198,10 +199,15 @@ function captureAt(i){
    draw();return;
  }
 
- turn=captureMaker==='R'?'G':'R';
- captureMaker=null;
- captureTarget=null;
- set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की बारी');
+ else{
+  if(window.extraMove===turn){
+    window.extraMove=null;
+    set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की फिर से बारी');
+  }else{
+    turn=turn==='R'?'G':'R';
+    set((turn==='R'?'🔴 लाल':'🟢 हरा')+' की बारी');
+  }
+}
  draw();checkWin()
 }
 
@@ -289,6 +295,28 @@ document.getElementById('bhur').onclick=()=>setMode('BHUR');
 document.getElementById('telanga').onclick=()=>setMode('TELANGA');
 document.getElementById('sound').onclick=()=>{sound=!sound;document.getElementById('sound').textContent=sound?'🔊 Sound ON':'🔇 Sound OFF'};
 document.getElementById('rules').onclick=()=>alert('DEMO नियम:\\n\\nBHUR: 9-9 गोटियाँ। 3 सीधी लाइन पर BHUR, 1 विरोधी गोटी हटेगी।\\n\\nTELANGA: 12-12 गोटियाँ। केवल 4 कोने वाली तिरछी लाइन में 3 गोटियाँ होने पर TELANGA, 3 विरोधी गोटियाँ हटेंगी। बाकी हर 3-गोटी लाइन BHUR मानी जाएगी और 1 विरोधी गोटी हटेगी।\\n\\nपहले Free गोटियाँ हटेंगी। Free कम पड़ने पर बाकी हटाने के लिए BHUR/TELANGA वाली गोटी चुनी जा सकती है।\\n\\nपहले TOSS से पहली चाल तय होगी।');
+  document.getElementById('extraMove').onclick=async()=>{
+  if(!window.BhurAdMob){
+    set('⚠️ विज्ञापन उपलब्ध नहीं है');
+    return;
+  }
+
+  if(window.extraMove===turn){
+    set('🎁 Extra Move पहले से उपलब्ध है');
+    return;
+  }
+
+  set('⏳ विज्ञापन लोड हो रहा है...');
+
+  const ok=await window.BhurAdMob.showRewardAd();
+
+  if(ok){
+    window.extraMove=turn;
+    set((turn==='R'?'🔴 लाल':'🟢 हरा')+' को 🎁 Extra Move मिल गई');
+  }else{
+    set('⚠️ विज्ञापन पूरा नहीं हुआ, Extra Move नहीं मिली');
+  }
+};
 reset();
 </script>
 
