@@ -29,6 +29,30 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+        
+      - name: Configure AdMob
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+
+          meta = '''        <meta-data
+              android:name="com.google.android.gms.ads.APPLICATION_ID"
+              android:value="@string/admob_app_id" />'''
+
+          text = text.replace("</application>", meta + "\n    </application>")
+          manifest.write_text(text)
+
+          strings = Path("android/app/src/main/res/values/strings.xml")
+          text = strings.read_text()
+
+          admob = '    <string name="admob_app_id">ca-app-pub-9955317200878271~3605410882</string>'
+
+          text = text.replace("</resources>", admob + "\n</resources>")
+          strings.write_text(text)
+          PY
 
       - name: Build Debug APK
         working-directory: android
