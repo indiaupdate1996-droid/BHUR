@@ -26,6 +26,9 @@ jobs:
 
       - name: Add Android platform
         run: npx cap add android
+      - name: Build AdMob Bundle
+        run: |
+          npx esbuild www/admob.js --bundle --format=iife --platform=browser --outfile=www/admob.bundle.js
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -53,6 +56,7 @@ jobs:
           text = text.replace("</resources>", admob + "\n</resources>")
           strings.write_text(text)
           PY
+      
 
       - name: Build Debug APK
         working-directory: android
