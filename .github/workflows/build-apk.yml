@@ -36,6 +36,35 @@ jobs:
       - name: Configure AdMob
         run: |
           python3 - <<'PY'
+                    PY
+
+      - name: Add BHUR App Icon
+        run: |
+          mkdir -p android/app/src/main/res/drawable-nodpi
+          cp ic_launcher.png android/app/src/main/res/drawable-nodpi/ic_launcher_custom.png
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+
+          text = text.replace(
+              'android:icon="@mipmap/ic_launcher"',
+              'android:icon="@drawable/ic_launcher_custom"'
+          )
+
+          text = text.replace(
+              'android:roundIcon="@mipmap/ic_launcher_round"',
+              'android:roundIcon="@drawable/ic_launcher_custom"'
+          )
+
+          manifest.write_text(text)
+          PY
+
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
           from pathlib import Path
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
